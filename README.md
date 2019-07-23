@@ -1,2 +1,4 @@
-# backend
-node js Api with login ,registration and adding and updating comments
+# node-mongo-registration-login-api
+
+NodeJS + MongoDB API for User Management, Authentication and Registration
+
