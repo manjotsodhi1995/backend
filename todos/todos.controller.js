@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const todoService = require('./todo.service');
+const { validateCreate, validateUpdate, validateId } = require('./todo.middleware');
 
 // routes
-router.post('/', create);
+router.post('/', validateCreate, create);
 router.get('/', getAll);
-router.get('/:id', getById);
-router.put('/:id', update);
-router.delete('/:id', _delete);
+router.get('/:id', validateId, getById);
+router.put('/:id', validateId, validateUpdate, update);
+router.delete('/:id', validateId, _delete);
 
 module.exports = router;
 

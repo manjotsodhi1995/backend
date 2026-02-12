@@ -6,7 +6,12 @@ let mongo;
 let app;
 
 beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
+    mongo = await MongoMemoryServer.create({
+        binary: {
+            version: '4.4.18',
+            downloadDir: './mongodb-binaries'
+        }
+    });
     process.env.MONGODB_URI = mongo.getUri();
 
     // Ensure we connect to the in-memory server for tests
