@@ -15,8 +15,28 @@ async function create(todoParam) {
     return todo.toJSON();
 }
 
-async function getAll() {
-    return await Todo.find().sort({ createdDate: -1 });
+async function getAll(params = {}) {
+    const page = parseInt(params.page) || 1;
+    const limit = parseInt(params.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const totalItems = await Todo.countDocuments();
+    const totalPages = Math.ceil(totalItems / limit);
+    
+    const data = await Todo.find()
+        .sort({ createdDate: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    return {
+        data,
+        pagination: {
+            page,
+            limit,
+            totalItems,
+            totalPages
+        }
+    };
 }
 
 async function getById(id) {

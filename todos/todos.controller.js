@@ -18,8 +18,19 @@ function create(req, res, next) {
 }
 
 function getAll(req, res, next) {
-    todoService.getAll()
-        .then(todos => res.json(todos))
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    // Validate pagination parameters
+    if (page < 1) {
+        return res.status(400).json({ message: 'Page must be greater than 0' });
+    }
+    if (limit < 1 || limit > 100) {
+        return res.status(400).json({ message: 'Limit must be between 1 and 100' });
+    }
+
+    todoService.getAll({ page, limit })
+        .then(result => res.json(result))
         .catch(err => next(err));
 }
 
