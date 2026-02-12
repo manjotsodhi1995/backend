@@ -1,21 +1,50 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 const { MongoMemoryServer } = require('mongodb-memory-server');
 
 let mongo;
 let app;
+let mongoose;
 
 beforeAll(async () => {
-    mongo = await MongoMemoryServer.create();
-    process.env.MONGODB_URI = mongo.getUri();
+    mongo = await MongoMemoryServer.create({
+        binary: {
+            version: '4.0.28'
+        }
+    });
 
-    // Ensure we connect to the in-memory server for tests
-    jest.resetModules();
+    const mongoUri = `${mongo.getUri()}testdb`;
+    process.env.MONGODB_URI = mongoUri;
+
+    // Clear module cache to ensure fresh connection
+    delete require.cache[require.resolve('mongoose')];
+    delete require.cache[require.resolve('../_helpers/db')];
+    delete require.cache[require.resolve('../todos/todo.model')];
+    delete require.cache[require.resolve('../todos/todo.service')];
+    delete require.cache[require.resolve('../todos/todos.controller')];
+    delete require.cache[require.resolve('../app')];
+
+    mongoose = require('mongoose');
     app = require('../app')();
 
     // Wait for mongoose to connect
-    await mongoose.connection.asPromise();
-});
+    await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000);
+
+        if (mongoose.connection.readyState === 1) {
+            clearTimeout(timeout);
+            resolve();
+        } else {
+            mongoose.connection.once('connected', () => {
+                clearTimeout(timeout);
+                resolve();
+            });
+            mongoose.connection.once('error', (err) => {
+                clearTimeout(timeout);
+                reject(err);
+            });
+        }
+    });
+}, 30000);
 
 afterAll(async () => {
     await mongoose.disconnect();
@@ -47,8 +76,9 @@ test('POST/GET/PUT/DELETE /todos', async () => {
     const listRes = await request(app)
         .get('/todos')
         .expect(200);
-    expect(listRes.body).toHaveLength(1);
-    expect(listRes.body[0].id).toBe(id);
+    expect(listRes.body.data).toHaveLength(1);
+    expect(listRes.body.data[0].id).toBe(id);
+    expect(listRes.body.pagination.total).toBe(1);
 
     const getRes = await request(app)
         .get(`/todos/${id}`)
@@ -77,5 +107,62 @@ test('POST /todos validates title', async () => {
         .expect(400);
 
     expect(res.body.message).toMatch(/Todo validation failed/i);
+});
+
+test('GET /todos supports pagination', async () => {
+    // Create 15 todos
+    for (let i = 1; i <= 15; i++) {
+        await request(app)
+            .post('/todos')
+            .send({ title: `Todo ${i}`, description: `Description ${i}` })
+            .expect(201);
+    }
+
+    // Test default pagination (page 1, limit 10)
+    const defaultRes = await request(app)
+        .get('/todos')
+        .expect(200);
+
+    expect(defaultRes.body).toHaveProperty('data');
+    expect(defaultRes.body).toHaveProperty('pagination');
+    expect(defaultRes.body.data).toHaveLength(10);
+    expect(defaultRes.body.pagination).toMatchObject({
+        page: 1,
+        limit: 10,
+        total: 15,
+        totalPages: 2,
+        hasNext: true,
+        hasPrev: false
+    });
+
+    // Test page 2
+    const page2Res = await request(app)
+        .get('/todos?page=2&limit=10')
+        .expect(200);
+
+    expect(page2Res.body.data).toHaveLength(5);
+    expect(page2Res.body.pagination).toMatchObject({
+        page: 2,
+        limit: 10,
+        total: 15,
+        totalPages: 2,
+        hasNext: false,
+        hasPrev: true
+    });
+
+    // Test custom limit
+    const customLimitRes = await request(app)
+        .get('/todos?page=1&limit=5')
+        .expect(200);
+
+    expect(customLimitRes.body.data).toHaveLength(5);
+    expect(customLimitRes.body.pagination).toMatchObject({
+        page: 1,
+        limit: 5,
+        total: 15,
+        totalPages: 3,
+        hasNext: true,
+        hasPrev: false
+    });
 });
 

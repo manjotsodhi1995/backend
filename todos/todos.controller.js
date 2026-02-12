@@ -18,8 +18,13 @@ function create(req, res, next) {
 }
 
 function getAll(req, res, next) {
-    todoService.getAll()
-        .then(todos => res.json(todos))
+    const options = {
+        page: req.query.page,
+        limit: req.query.limit
+    };
+
+    todoService.getAll(options)
+        .then(result => res.json(result))
         .catch(err => next(err));
 }
 
