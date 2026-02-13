@@ -10,6 +10,11 @@ app.use(bodyParser.json());
 app.use(cors());
 app.options('*', cors());
 
+// hello world route
+app.get('/', (req, res) => {
+    res.send('Hello World');
+});
+
 // api routes
 app.use('/users', require('./users/users.controller'));
 app.use('/comment', require('./comments/comment.controller'));
