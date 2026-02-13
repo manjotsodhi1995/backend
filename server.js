@@ -1,4 +1,4 @@
-﻿require('rootpath')();
+require('rootpath')();
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -13,6 +13,7 @@ app.options('*', cors());
 // api routes
 app.use('/users', require('./users/users.controller'));
 app.use('/comment', require('./comments/comment.controller'));
+app.use('/todos', require('./todos/todo.controller'));
 
 // global error handler
 app.use(errorHandler);
