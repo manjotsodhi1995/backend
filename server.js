@@ -1,29 +1,30 @@
-﻿require('rootpath')();
-const express = require('express');
+﻿const express = require('express');
 const app = express();
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const errorHandler = require('_helpers/error-handler');
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(cors());
-app.options('*', cors());
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// hello world route
+// Hello World routes
 app.get('/', (req, res) => {
-    res.send('Hello World');
+    res.send('Hello World from Express!');
 });
 
-// api routes
-app.use('/users', require('./users/users.controller'));
-app.use('/comment', require('./comments/comment.controller'));
+app.get('/hello', (req, res) => {
+    res.json({ 
+        message: 'Hello World', 
+        timestamp: new Date(),
+        server: 'Express.js'
+    });
+});
 
-// global error handler
-app.use(errorHandler);
+app.get('/hello/:name', (req, res) => {
+    res.send(`Hello ${req.params.name}!`);
+});
 
-// start server
-const port = process.env.NODE_ENV === 'production' ? (process.env.PORT || 80) : 4000;
-const server = app.listen(port, function () {
-    console.log('Server listening on port ' + port);
+// Start server
+const port = process.env.PORT || 4000;
+app.listen(port, () => {
+    console.log(`Hello World Express Server listening on port ${port}`);
+    console.log(`Visit http://localhost:${port}/ to see Hello World`);
 });
